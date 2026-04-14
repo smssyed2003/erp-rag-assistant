@@ -9,6 +9,7 @@ from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 from datetime import datetime
 from dotenv import load_dotenv
+import gdown
 
 # Load variables from .env file
 load_dotenv()
@@ -32,10 +33,61 @@ class CorporateRAG:
         genai.configure(api_key=api_key)
         self.llm = genai.GenerativeModel("gemini-flash-latest")
 
+        # Download PDFs from Google Drive if not present
+        self._download_pdfs()
+
         # Load or Create Index
         self.state = self._load_state()
         self.current_file_checksums = self._compute_file_checksums()
         self._ingest_docs(file_order=self._determine_file_order())
+
+        if os.path.exists(self.db_path) and self.state:
+            logging.info("Loading existing Vector Database from disk...")
+            self.index = faiss.read_index(self.db_path)
+            if self._should_rebuild_index():
+                logging.info("Detected changed or removed documents. Rebuilding full index...")
+                self._build_index()
+            elif self._has_new_files():
+                self._append_new_chunks()
+            elif self.index.ntotal != len(self.chunks):
+                logging.info("Existing index chunk count differs from current documents. Rebuilding index...")
+                self._build_index()
+            else:
+                logging.info("Existing vector index is up-to-date.")
+        else:
+            logging.info("No database found. Building new vector index from all PDFs...")
+            self._build_index()
+
+    def _download_pdfs(self):
+        """Download PDFs from Google Drive folder if data folder is empty."""
+        if not os.path.exists(self.data_folder):
+            os.makedirs(self.data_folder)
+        
+        # Check if PDFs are already downloaded
+        pdf_files = [f for f in os.listdir(self.data_folder) if f.endswith('.pdf')]
+        if pdf_files:
+            logging.info(f"Found {len(pdf_files)} PDF files in {self.data_folder}. Skipping download.")
+            return
+        
+        # Google Drive folder URL - replace with your actual folder ID
+        folder_url = "https://drive.google.com/drive/folders/18inq6xaouUQGaVe-MZgbnQuwiETk6mK4?usp=sharing"
+        
+        # Extract folder ID from URL
+        if "folders/" in folder_url:
+            folder_id = folder_url.split("folders/")[1].split("?")[0]
+        else:
+            logging.error("Invalid Google Drive folder URL")
+            return
+        
+        logging.info(f"Downloading PDFs from Google Drive folder: {folder_id}")
+        try:
+            gdown.download_folder(id=folder_id, output=self.data_folder, quiet=False)
+            logging.info("PDFs downloaded successfully.")
+        except Exception as e:
+            logging.error(f"Failed to download PDFs: {e}")
+            raise
+
+    def _ingest_docs(self, file_order=None):
 
         if os.path.exists(self.db_path) and self.state:
             logging.info("Loading existing Vector Database from disk...")

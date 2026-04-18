@@ -1,0 +1,22 @@
+<div class="chat-box">
+  <div *ngFor="let msg of messages" [ngClass]="msg.role">
+    <div class="message-label">{{ msg.role | titlecase }}:</div>
+    <div class="message-content">{{ msg.text }}</div>
+    <div class="message-sources" *ngIf="msg.sources?.length">
+      Sources: {{ msg.sources.join(', ') }}
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading">Thinking...</div>
+</div>
+
+<div class="chat-input">
+  <input
+    [(ngModel)]="userInput"
+    placeholder="Ask ERP question..."
+    (keyup.enter)="sendMessage()"
+  />
+  <button (click)="sendMessage()" [disabled]="!userInput || isLoading">Send</button>
+</div>
+
+<div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>

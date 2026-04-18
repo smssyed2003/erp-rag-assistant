@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "text": "In procure-to-pay, create purchase orders, send them to vendors, and confirm goods receipts when supplies arrive.",
+    "source": "P2P process guide"
+  },
+  {
+    "id": 2,
+    "text": "Order-to-cash covers order entry, delivery creation, invoice issuance, and payment reconciliation in ERP systems.",
+    "source": "O2C process guide"
+  },
+  {
+    "id": 3,
+    "text": "Finance month-end closing includes ledger reconciliation, journal entry posting, and preparation of financial reports.",
+    "source": "Finance process guide"
+  }
+]

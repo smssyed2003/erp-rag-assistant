@@ -9,7 +9,13 @@ class RAGEngine:
 
     def query(self, question, session_id):
 
-        context, sources = self.retriever.retrieve(question)
+        result = self.retriever.retrieve(question)
+
+        if not result or not isinstance(result, tuple):
+            context, sources = "", []
+        else:
+            context, sources = result
+            
         memory = self.memory.get(session_id)
 
         prompt = f"""

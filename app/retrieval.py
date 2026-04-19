@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 from pathlib import Path
 from rank_bm25 import BM25Okapi
 
@@ -58,7 +61,6 @@ class Retriever:
 
         if cache_path.exists():
             embeddings = np.load(cache_path)
-         # 🔥 ADD THIS (normalize even if loaded)
             faiss.normalize_L2(embeddings)
         else:
             embeddings = np.vstack([self.embed(text) for text in self.texts])
@@ -69,10 +71,7 @@ class Retriever:
             raise RuntimeError("No embeddings were generated")
 
         dim = embeddings.shape[1]
-
-        # 🔥 Cosine similarity
         index = faiss.IndexFlatIP(dim)
-
         index.add(embeddings)
         return index
     
@@ -80,48 +79,52 @@ class Retriever:
         return f"ERP process: {question}"
 
     def retrieve(self, query):
-        query = self.rewrite_query(query)
+        try:
+            query = self.rewrite_query(query)
+            logger.info(f"Retrieving for query: {query}")
 
-        # -------- VECTOR SEARCH --------
-        q_vec = self.embed(query).reshape(1, -1)
-        faiss.normalize_L2(q_vec)
+            q_vec = self.embed(query).reshape(1, -1)
+            faiss.normalize_L2(q_vec)
 
-        distances, vector_idx = self.index.search(q_vec, k=8)
+            distances, vector_idx = self.index.search(q_vec, k=8)
+            logger.info(f"Top distances: {distances[0]}")
 
-        # -------- KEYWORD SEARCH --------
-        keyword_idx = self.keyword_search(query, k=5)
+            keyword_idx = self.keyword_search(query, k=5)
 
-        # -------- COMBINE RESULTS --------
-        combined_indices = list(set(vector_idx[0]) | set(keyword_idx))
+            combined_indices = list(set(vector_idx[0]) | set(keyword_idx))
 
-        context = []
-        sources = []
+            context, sources = [], []
 
-        for i in combined_indices:
-            context.append(self.texts[i])
-            sources.append(self.data[i]["source"])
+            for i in combined_indices:
+                context.append(self.texts[i])
+                sources.append(self.data[i]["source"])
 
-        # -------- OPTIONAL: simple rerank by keyword overlap --------
-        query_words = set(query.lower().split())
+            logger.info(f"Combined results count: {len(context)}")
 
-        scored = []
-        for ctx, src in zip(context, sources):
-            overlap = len(query_words & set(ctx.lower().split()))
-            scored.append((overlap, ctx, src))
+            query_words = set(query.lower().split())
 
-        scored.sort(reverse=True)
+            scored = []
+            for ctx, src in zip(context, sources):
+                overlap = len(query_words & set(ctx.lower().split()))
+                scored.append((overlap, ctx, src))
 
-        # take top 5 after rerank
-        top_results = scored[:5]
+            scored.sort(reverse=True)
+            top_results = scored[:5]
 
-        final_context = [item[1] for item in top_results]
-        final_sources = [item[2] for item in top_results]
+            final_context = [item[1] for item in top_results]
+            final_sources = [item[2] for item in top_results]
 
-        context_text = "\n\n---\n\n".join(final_context)
-        context_text = context_text[:2000]
+            if not final_context:
+                return "No relevant ERP context found.", []
 
-        return context_text, final_sources
-        
+            context_text = "\n\n---\n\n".join(final_context)[:2000]
+
+            return context_text, final_sources
+
+        except Exception as e:
+            logger.exception("Retrieve failed")
+            return "", []        
+    
     def generate(self, prompt):
         if not self.api_available:
             return "Mock response: This is a demo answer. Please configure a valid GEMINI_API_KEY for real responses."

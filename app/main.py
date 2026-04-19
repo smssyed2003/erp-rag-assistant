@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from app.logger import logger
 import os
 from app.rag_engine import RAGEngine
 
@@ -25,9 +27,15 @@ rag = None
 @app.on_event("startup")
 def startup_event():
     global rag
-    print("GEMINI_API_KEY:", os.getenv("GEMINI_API_KEY"))
-    rag = RAGEngine()
-    print("RAG Engine initialized")
+    logger.info("Starting ERP RAG API...")
+
+    try:
+        logger.info(f"GEMINI_API_KEY present: {bool(os.getenv('GEMINI_API_KEY'))}")
+        rag = RAGEngine()
+        logger.info("RAG Engine initialized successfully")
+    except Exception as e:
+        logger.exception("Failed during startup")
+        raise e
 
 class Query(BaseModel):
     session_id: str
@@ -39,8 +47,15 @@ def health():
 
 @app.post("/ask")
 def ask(q: Query):
+    logger.info(f"Incoming query | session={q.session_id} | question={q.question}")
+
     try:
         response = rag.query(q.question, q.session_id)
+
+        logger.info("Response generated successfully")
+
         return {"response": response}
+
     except Exception as e:
+        logger.exception("Error during /ask")
         return {"error": str(e)}

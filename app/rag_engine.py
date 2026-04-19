@@ -19,7 +19,7 @@ class RAGEngine:
         memory = self.memory.get(session_id)
 
         prompt = f"""
-        ROLE: ERP Functional Consultant
+        You are an ERP assistant helping users understand ERP concepts clearly.
 
         PRIORITY:
         1. Context
@@ -35,10 +35,18 @@ class RAGEngine:
         QUESTION:
         {question}
 
-        RULES:
-        - Always answer
-        - If missing → "Based on standard ERP practices"
-        - Step-by-step explanation
+        INSTRUCTIONS:
+        - Give a clear and concise answer
+        - Use simple language (non-technical if possible)
+        - Keep it under 120 words
+        - Use short paragraphs or bullet points if needed
+        - Avoid markdown symbols like ** or ###
+        - Do NOT over-explain
+        - If context is missing, say: "Based on standard ERP practices"
+        - If question is simple → give short answer
+        - If question asks "explain" → give step-by-step
+
+        ANSWER:
         """
 
         answer = self.retriever.generate(prompt)

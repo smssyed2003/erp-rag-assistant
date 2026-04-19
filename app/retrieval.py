@@ -32,13 +32,24 @@ class Retriever:
     def _configure_model(self):
         try:
             api_key = require_env("GEMINI_API_KEY")
-            if api_key.startswith("AIzaSyAXlKzgn"):  # Placeholder key
-                raise ValueError("Placeholder API key detected")
+
+            logger.info(f"API KEY LOADED: {bool(api_key)}")
+
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY is missing")
+
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel("gemini-flash-latest", generation_config={"temperature": 0.3})
+
+            self.model = genai.GenerativeModel(
+                "gemini-flash-latest",
+                generation_config={"temperature": 0.3}
+            )
+
             self.api_available = True
+            logger.info("Gemini model initialized successfully")
+
         except Exception as e:
-            print(f"Warning: Gemini API not available ({e}). Using mock responses.")
+            logger.exception(f"Gemini init failed: {e}")
             self.api_available = False
             self.model = None
 

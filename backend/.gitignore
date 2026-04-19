@@ -1,0 +1,4 @@
+.env
+__pycache__/
+*.pyc
+erp_chunks_embeddings.npy

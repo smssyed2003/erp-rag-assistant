@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  backendUrl: 'http://localhost:10000'
+  backendUrl: 'https://erp-rag-assistant.onrender.com'
 };

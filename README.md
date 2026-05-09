@@ -18,27 +18,38 @@ This repository contains an ERP AI Assistant project with a backend service, fro
 
 ## Quick start
 
-1. Open the terminal and go to the backend folder:
+**For detailed setup instructions and troubleshooting, see [SETUP.md](SETUP.md)**
+
+### Quick Setup (3 steps)
+
+1. **Get Gemini API Key**:
+   - Go to https://aistudio.google.com/apikey
+   - Click "Create API key"
+   - Copy your key
+
+2. **Configure Backend**:
+   - Navigate to `backend/`
+   - Create a `.env` file with:
+     ```
+     GEMINI_API_KEY=your_key_here
+     ```
+
+3. **Run Backend**:
    ```bash
    cd backend
-   ```
-2. Create and activate a Python virtual environment:
-   ```bash
-   python -m venv .venv
-   .\.venv\Scripts\activate
-   ```
-3. Install backend dependencies:
-   ```bash
+   python -m venv venv
+   # Windows:
+   .\venv\Scripts\activate
+   # macOS/Linux:
+   source venv/bin/activate
+   
    pip install -r requirements.txt
+   uvicorn app.main:app --reload
    ```
-4. Add your Gemini API key to a `.env` file in `backend/`:
-   ```text
-   GEMINI_API_KEY=your_api_key_here
-   ```
-5. Run the backend service:
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+
+The backend will run at `http://127.0.0.1:8000`
+
+**See [SETUP.md](SETUP.md) for detailed instructions, testing, and troubleshooting.**
 
 ## Backend endpoints
 
@@ -47,8 +58,10 @@ This repository contains an ERP AI Assistant project with a backend service, fro
 
 ## Documentation
 
-- Read the beginner-friendly documentation in `docs/ERP_AI_Assistant_Documentation.md`.
-- Generate a PDF version with:
+- **Getting Started**: See [SETUP.md](SETUP.md) for detailed local development setup
+- **Production Deployment**: See [DEPLOYMENT.md](DEPLOYMENT.md) for Render & Vercel deployment guides
+- **Project Overview**: Read [docs/ERP_AI_Assistant_Documentation.md](docs/ERP_AI_Assistant_Documentation.md) for beginner-friendly documentation
+- **Generate PDF**: Create a PDF version with:
   ```bash
   python docs/generate_pdf.py
   ```

@@ -5,10 +5,13 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from app.logger import logger
 import os
+from pathlib import Path
 from app.rag_engine import RAGEngine
 from app.agent import Agent
 
-load_dotenv()
+# Load environment variables from .env file in backend directory
+env_path = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(dotenv_path=env_path)
 
 app = FastAPI(
     title="ERP RAG Assistant API",

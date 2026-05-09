@@ -378,6 +378,57 @@ The Angular frontend is deployed on Vercel.
 - Problem: Frontend could not reach backend from the browser.
 - Cause: Cross-origin requests were blocked by the browser.
 - Fix: Enable CORS in FastAPI with `CORSMiddleware`.
+
+---
+
+## 11. Setup and Running the Project
+
+### Backend setup
+1. Open a terminal in the `backend/` folder.
+2. Create a Python virtual environment:
+   ```bash
+   python -m venv .venv
+   .\.venv\Scripts\activate
+   ```
+3. Install the backend packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Add your Gemini key to `backend/.env`:
+   ```text
+   GEMINI_API_KEY=your_api_key_here
+   ```
+5. Start the backend server:
+   ```bash
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+### Frontend setup
+1. Open a terminal in the `frontend/` folder.
+2. Install dependencies and run the Angular app with your preferred package manager.
+3. Make sure the frontend points to `http://localhost:8000` for the backend.
+
+### Generating the PDF documentation
+1. Install the docs packages:
+   ```bash
+   pip install -r docs/requirements.txt
+   ```
+2. Run the PDF script:
+   ```bash
+   python docs/generate_pdf.py
+   ```
+3. The file `docs/ERP_AI_Assistant_Documentation.pdf` will be created.
+
+## 12. Glossary for non-technical readers
+
+- **API**: A way for different software parts to talk to each other.
+- **Backend**: The server part that makes decisions and fetches data.
+- **Frontend**: The user interface where people type questions and read answers.
+- **LLM**: Large Language Model, an AI that writes answers.
+- **RAG**: Retrieval-Augmented Generation, a method that looks up relevant documents before answering.
+- **Agent**: A smart controller that decides whether to search or answer directly.
+- **Prompt**: The instructions sent to the AI model.
+- **Session ID**: A label used to remember a user's conversation.
 - Learning: Modern web apps must allow cross-origin requests safely.
 
 ### ng permission issue

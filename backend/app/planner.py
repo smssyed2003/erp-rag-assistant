@@ -59,6 +59,8 @@ class Planner:
             else "None"
         )
 
+        question_json = json.dumps(question)
+
         return f"""
 You are an AI agent planner for an ERP assistant.
 Select the next action from the allowed tools.
@@ -67,8 +69,8 @@ Return only strict JSON with keys:
 {{"action":"...","input":{{...}}}}
 
 IMPORTANT: Always include the "input" field.
-For rag_search action, the input must be: {{"question": "{question}"}}
-For direct_answer action, the input must be: {{"question": "{question}"}}
+For rag_search action, the input must be: {{"question": {question_json}}}
+For direct_answer action, the input must be: {{"question": {question_json}}}
 
 Do not add any text outside the JSON object.
 

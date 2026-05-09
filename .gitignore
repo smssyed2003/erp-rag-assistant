@@ -5,3 +5,4 @@ erp_chunks_embeddings.npy
 venv/
 .venv/
 backend/venv/
+cls

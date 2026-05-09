@@ -60,6 +60,22 @@ This repository contains an ERP AI Assistant project with a backend service, fro
 - The AI Agent is a smart helper inside the backend that decides how to answer.
 - If you are not familiar with AI, the documentation explains the main ideas in plain language.
 
+## How to use this project (non-technical)
+
+1. Start the backend server first from the `backend/` folder.
+2. Open the frontend app in a browser.
+3. Type your question in the chat box.
+4. The assistant will answer using ERP knowledge and show sources.
+5. If the assistant needs more detail, it may search ERP documents before answering.
+
+This setup is built so that non-technical users can ask questions and receive clear written answers without needing to understand the code.
+
+## Frontend integration
+
+- The frontend uses `frontend/src/environments/environment.ts` to locate the backend.
+- It sends requests to `backendUrl + '/agent-ask'`.
+- The backend allows browser requests through CORS, so the frontend and backend can communicate.
+
 ## Git and cleanup
 
 - The repository is now organized with only one backend service.

@@ -3,16 +3,22 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
+export interface AgentStep {
+  action: string;
+  description: string;
+}
+
 export interface ChatResponse {
   answer: string;
   sources: string[];
+  steps?: AgentStep[];
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
-  private API_URL = `${environment.backendUrl}/ask`;
+  private API_URL = `${environment.backendUrl}/agent-ask`;
 
   constructor(private http: HttpClient) {}
 

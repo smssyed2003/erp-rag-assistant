@@ -1,14 +1,21 @@
 import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule } from '@angular/common/http';
-import { AppComponent } from './app.component';
+
 import { ChatComponent } from './services/chat.component';
+import { AppComponent } from './app.component';
 
 @NgModule({
-  declarations: [AppComponent, ChatComponent],
-  imports: [BrowserModule, FormsModule, HttpClientModule],
-  providers: [],
+  declarations: [
+    AppComponent,
+    ChatComponent
+  ],
+  imports: [
+    BrowserModule,
+    HttpClientModule,
+    FormsModule
+  ],
   bootstrap: [AppComponent]
 })
-export class AppModule {}
+export class AppModule {}   // ✅ REQUIRED

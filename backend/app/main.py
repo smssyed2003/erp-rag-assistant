@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from app.logger import logger
 import os
 from app.rag_engine import RAGEngine
+from app.agent import Agent
 
 load_dotenv()
 
@@ -23,16 +24,18 @@ app.add_middleware(
 )
 
 rag = None
+agent = None
 
 @app.on_event("startup")
 def startup_event():
-    global rag
+    global rag, agent
     logger.info("Starting ERP RAG API...")
 
     try:
         logger.info(f"GEMINI_API_KEY present: {bool(os.getenv('GEMINI_API_KEY'))}")
         rag = RAGEngine()
-        logger.info("RAG Engine initialized successfully")
+        agent = Agent(rag)
+        logger.info("RAG Engine and Agent initialized successfully")
     except Exception as e:
         logger.exception("Failed during startup")
         raise e
@@ -59,3 +62,33 @@ def ask(q: Query):
     except Exception as e:
         logger.exception("Error during /ask")
         return {"error": str(e)}
+
+@app.post("/agent-ask")
+def agent_ask(q: Query):
+    logger.info(f"Incoming agent query | session={q.session_id} | question={q.question}")
+
+    try:
+        if not agent:
+            raise RuntimeError("Agent is not initialized")
+
+        response = agent.run(q.question, q.session_id)
+        logger.info("Agent response generated successfully")
+
+        return {
+            "answer": response.get("answer", ""),
+            "steps": response.get("steps", []),
+            "sources": response.get("sources", []),
+        }
+
+    except Exception as e:
+        logger.exception("Error during /agent-ask")
+        fallback = rag.query(q.question, q.session_id)
+
+        return {
+            "answer": fallback.get("answer", ""),
+            "steps": [{
+                "action": "fallback",
+                "description": "Fallback to direct RAG answer due to agent endpoint failure"
+            }],
+            "sources": fallback.get("sources", []),
+        }

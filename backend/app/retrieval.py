@@ -1,39 +1,40 @@
 import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+import numpy as np
+import faiss
+import google.generativeai as genai
 from pathlib import Path
 from rank_bm25 import BM25Okapi
+from google.api_core import exceptions
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+# Preserving your existing imports
 from app.logger import logger
-
-import faiss
-import numpy as np
-import google.generativeai as genai
-
 from app.utils import backend_root, load_json, normalize_text, require_env
-
 
 class Retriever:
 
     def __init__(self):
         self.data_file = backend_root() / "data" / "erp_chunks.json"
         self.data = load_json(self.data_file)
+
         self.texts = [normalize_text(d["text"]) for d in self.data]
         self.tokenized_texts = [text.split() for text in self.texts]
+
         self.bm25 = BM25Okapi(self.tokenized_texts)
+
         self._configure_model()
+
         self.index = self._build_index()
-    
+
     def keyword_search(self, query, k=5):
         tokenized_query = query.lower().split()
         scores = self.bm25.get_scores(tokenized_query)
-
         top_indices = np.argsort(scores)[::-1][:k]
         return top_indices
 
     def _configure_model(self):
         try:
             api_key = require_env("GEMINI_API_KEY")
-
             logger.info(f"API KEY LOADED: {bool(api_key)}")
 
             if not api_key:
@@ -41,32 +42,49 @@ class Retriever:
 
             genai.configure(api_key=api_key)
 
+            # CONTEXT: Changed to 31B model and added mandatory 'models/' prefix
             self.model = genai.GenerativeModel(
-                "gemini-flash-latest",
-                generation_config={"temperature": 0.3}
+                model_name="models/gemma-4-31b-it",
+                generation_config={
+                    "temperature": 0.2
+                }
             )
 
             self.api_available = True
-            logger.info("Gemini model initialized successfully")
+            logger.info("Gemma 31B model initialized successfully")
 
         except Exception as e:
-            logger.exception(f"Gemini init failed: {e}")
+            logger.exception(f"Gemma init failed: {e}")
             self.api_available = False
             self.model = None
 
+    # CONTEXT: Added Retry logic to handle 15 RPM (429 errors)
+    @retry(
+        retry=retry_if_exception_type(exceptions.ResourceExhausted),
+        wait=wait_exponential(multiplier=1, min=4, max=60),
+        stop=stop_after_attempt(5),
+        reraise=True
+    )
     def embed(self, text):
         if not self.api_available:
-            return np.random.rand(768).astype("float32")
+            raise RuntimeError("Embedding service unavailable")
 
         try:
+            # CONTEXT: Added mandatory 'models/' prefix
             response = genai.embed_content(
-                model="text-embedding-004",
-                content=normalize_text(text)
+                model="models/text-embedding-004",
+                content=normalize_text(text),
+                task_type="retrieval_query"
             )
-            return np.array(response["embedding"], dtype="float32")
+
+            return np.array(
+                response["embedding"],
+                dtype="float32"
+            )
+
         except Exception as e:
-            print(f"Embedding error: {e}")
-            return np.random.rand(768).astype("float32")
+            logger.exception(f"Embedding error: {e}")
+            raise RuntimeError(f"Embedding generation failed: {e}")
 
     def _build_index(self):
         cache_path = self.data_file.parent / "erp_chunks_embeddings.npy"
@@ -77,7 +95,10 @@ class Retriever:
             embeddings = np.load(cache_path)
             faiss.normalize_L2(embeddings)
         else:
-            embeddings = np.vstack([self.embed(text) for text in self.texts])
+            embeddings = np.vstack([
+                self.embed(text)
+                for text in self.texts
+            ])
             faiss.normalize_L2(embeddings)
             np.save(cache_path, embeddings)
 
@@ -88,39 +109,41 @@ class Retriever:
         index = faiss.IndexFlatIP(dim)
         index.add(embeddings)
         return index
-    
+
     def rewrite_query(self, question):
         return f"ERP process: {question}"
 
     def retrieve(self, query):
         query = self.rewrite_query(query)
-
         q_vec = self.embed(query).reshape(1, -1)
         faiss.normalize_L2(q_vec)
 
         distances, vector_idx = self.index.search(q_vec, k=8)
-
         keyword_idx = self.keyword_search(query, k=5)
 
-        combined_indices = list(set(vector_idx[0]) | set(keyword_idx))
+        # Preserving your specific set-union logic
+        combined_indices = list(
+            set(vector_idx[0]) | set(keyword_idx)
+        )
 
-        context, sources = [], []
+        context = []
+        sources = []
 
         for i in combined_indices:
             context.append(self.texts[i])
             sources.append(self.data[i]["source"])
 
-        # -------- OPTIONAL: simple rerank by keyword overlap --------
+        # Preserving your specific overlap reranking logic exactly
         query_words = set(query.lower().split())
-
         scored = []
+
         for ctx, src in zip(context, sources):
-            overlap = len(query_words & set(ctx.lower().split()))
+            overlap = len(
+                query_words & set(ctx.lower().split())
+            )
             scored.append((overlap, ctx, src))
 
         scored.sort(reverse=True)
-
-        # take top 5 after rerank
         top_results = scored[:5]
 
         final_context = [item[1] for item in top_results]
@@ -130,9 +153,28 @@ class Retriever:
         context_text = context_text[:2000]
 
         return context_text, final_sources
-        
+
+    # CONTEXT: Added Retry logic for generation
+    @retry(
+        retry=retry_if_exception_type(exceptions.ResourceExhausted),
+        wait=wait_exponential(multiplier=1, min=4, max=60),
+        stop=stop_after_attempt(5),
+        reraise=True
+    )
     def generate(self, prompt):
         if not self.api_available:
-            return "Mock response: This is a demo answer. Please configure a valid GEMINI_API_KEY for real responses."
-        response = self.model.generate_content(prompt)
-        return response.text.strip()
+            return "Mock response: Please configure a valid GEMINI_API_KEY"
+
+        try:
+            response = self.model.generate_content(prompt)
+            
+            # CONTEXT: Changed from .text to parts joining to handle the ValueError
+            if response.candidates and response.candidates[0].content.parts:
+                full_text = "".join([part.text for part in response.candidates[0].content.parts])
+                return full_text.strip()
+            
+            return "Model returned no content."
+
+        except Exception as e:
+            logger.error(f"Generation failed: {e}")
+            return f"Error: {str(e)}"

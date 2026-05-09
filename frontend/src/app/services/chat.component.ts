@@ -1,10 +1,13 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
-import { ChatService } from './chat.service';
+import { ChatService, AgentStep } from './chat.service';
 
 interface ChatMessage {
   role: 'user' | 'bot';
   text: string;
   sources?: string[];
+  steps?: AgentStep[];
+  isTyping?: boolean;
+  expandSteps?: boolean;
 }
 
 @Component({
@@ -28,46 +31,72 @@ export class ChatComponent {
     const question = this.userInput.trim();
     if (!question || this.isLoading) return;
 
-    // ✅ Add user message
     this.messages.push({
       role: 'user',
       text: question
     });
 
+    const botIndex = this.messages.length;
+    this.messages.push({
+      role: 'bot',
+      text: '',
+      sources: [],
+      steps: [],
+      isTyping: true,
+      expandSteps: false
+    });
+
     this.userInput = '';
     this.errorMessage = '';
     this.isLoading = true;
+    this.scrollToBottom();
 
-    this.scrollToBottom(); // ✅ scroll after user message
-
-    // ✅ Call backend
     this.chatService.askQuestion(question, this.sessionId).subscribe({
       next: (res: any) => {
+        const answer = res.answer || res.response?.answer || res.response || 'No response';
+        const sources = res.sources || res.response?.sources || [];
+        const steps = res.steps || [];
 
-        this.messages.push({
-          role: 'bot',
-          text: typeof res.response === 'string'
-            ? res.response
-            : res.response?.answer || res.answer || 'No response',
-          sources: res.response?.sources || res.sources || []
-        });
-
-        this.scrollToBottom(); // ✅ scroll after bot message
+        this.typeWriter(botIndex, answer, sources, steps);
       },
-
       error: (err) => {
         console.error(err);
-        this.errorMessage = 'Unable to get an answer from the backend. Please try again.';
-        this.isLoading = false;
-      },
-
-      complete: () => {
+        this.messages.pop();
+        this.errorMessage = err.status === 503 || err.status === 504 || err.status === 0
+          ? 'Server waking up... Please wait a moment and retry.'
+          : 'Unable to get an answer from the backend. Please try again.';
         this.isLoading = false;
       }
     });
   }
 
   // ✅ Reusable scroll function
+  private typeWriter(index: number, text: string, sources: string[], steps: AgentStep[]) {
+    let position = 0;
+    const interval = window.setInterval(() => {
+      if (!this.messages[index]) {
+        window.clearInterval(interval);
+        return;
+      }
+
+      this.messages[index].text += text.charAt(position);
+      position += 1;
+      this.scrollToBottom();
+
+      if (position >= text.length) {
+        window.clearInterval(interval);
+        this.messages[index].isTyping = false;
+        this.messages[index].sources = sources;
+        this.messages[index].steps = steps;
+        this.isLoading = false;
+      }
+    }, 16);
+  }
+
+  toggleSteps(message: ChatMessage) {
+    message.expandSteps = !message.expandSteps;
+  }
+
   scrollToBottom() {
     setTimeout(() => {
       if (this.chatBox) {

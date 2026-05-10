@@ -1,158 +1,321 @@
-<<<<<<< HEAD
-# Backend Service - ERP RAG System
+# ERP RAG System v1.0
 
-This folder contains the backend API and core ERP assistant logic.
+**Production-Ready ERP AI Assistant with Retrieval-Augmented Generation**
 
-## What is here
+An intelligent ERP assistant that helps users ask questions about ERP systems and get accurate, context-aware answers with source citations. Built with modern web technologies and AI.
 
-- `app/main.py` - FastAPI application with endpoints.
-- `app/agent.py` - AI Agent orchestration logic.
-- `app/planner.py` - Decides the next action and builds prompts.
-- `app/tool_registry.py` - Maps agent actions to tools.
-- `app/rag_engine.py` - Runs retrieval and answer generation.
-- `app/retrieval.py` - Loads ERP data, builds embeddings, and performs search.
-- `app/tools/` - Available agent tools like `rag_search` and `direct_answer`.
-- `app/utils.py` - Helper functions for paths, JSON, and environment variables.
-- `app/memory.py` - Simple session memory tracking.
+---
 
-## How the agent works
+## 🎯 What This Project Does
 
-- The Agent receives a question and asks the Planner what to do.
-- The Planner chooses between:
-  - `rag_search` - get ERP context and sources
-  - `direct_answer` - answer directly without retrieval
-- The tool result is stored as a step.
-- The agent synthesizes the final answer from all tool outputs.
+- **Intelligent Q&A**: Users ask questions about ERP concepts, workflows, and procedures
+- **Accurate Answers**: Uses Retrieval-Augmented Generation (RAG) to find real documents and generate answers
+- **Source Citations**: Shows which documents were used to generate the answer
+- **Smart Agent**: Can decide whether to search documents or answer from general knowledge
+- **Session Memory**: Remembers context across multiple questions in the same session
+- **Production Ready**: Fully deployed and accessible 24/7
 
-## Required setup
+---
 
-1. Create a Python virtual environment:
-   ```bash
-   python -m venv .venv
-   .\.venv\Scripts\activate
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Create `.env` with your Gemini key:
-   ```text
-   GEMINI_API_KEY=your_api_key_here
-   ```
+## 📁 Project Structure
 
-## Run locally
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+ERP_RAG_System_V0.1/
+├── backend/                    # FastAPI backend service (Python)
+│   ├── app/
+│   │   ├── main.py            # FastAPI app & endpoints
+│   │   ├── agent.py           # AI Agent orchestration
+│   │   ├── planner.py         # Decision-making logic
+│   │   ├── rag_engine.py      # RAG pipeline
+│   │   ├── retrieval.py       # Document search
+│   │   ├── tool_registry.py   # Tool management
+│   │   ├── memory.py          # Session memory
+│   │   ├── logger.py          # Logging system
+│   │   └── tools/             # Available tools
+│   ├── requirements.txt        # Python dependencies
+│   └── .env                   # Environment variables (create this)
+│
+├── frontend/                   # Angular frontend (TypeScript)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── app.component.ts    # Root component
+│   │   │   ├── app.module.ts       # Module configuration
+│   │   │   └── services/
+│   │   │       ├── chat.component.ts    # Chat logic
+│   │   │       ├── chat.service.ts      # Backend communication
+│   │   │       └── chat.component.css   # Chat styles
+│   │   ├── environments/       # Environment configs
+│   │   ├── styles.css         # Global styles
+│   │   └── main.ts            # Bootstrap entry point
+│   ├── angular.json           # Angular configuration
+│   ├── package.json           # NPM dependencies
+│   └── README.md              # Frontend docs
+│
+├── data/                       # ERP knowledge base
+│   ├── erp_chunks.json        # ERP documents
+│   └── erp_chunks_embeddings.npy  # Vector embeddings
+│
+├── docs/                       # Documentation
+│   ├── ERP_AI_Assistant_Documentation.md  # Beginner guide
+│   ├── CODE_ARCHITECTURE.md    # Code explanation (READ THIS!)
+│   └── generate_pdf.py        # PDF generator
+│
+├── SETUP.md                   # Local development setup
+├── DEPLOYMENT.md              # Production deployment guide
+└── README.md                  # This file
 ```
 
-## API endpoints
+---
 
-- `POST /ask` - Use the RAG engine for ERP questions.
-- `POST /agent-ask` - Use the AI Agent layer.
+## 🚀 Quick Start
 
-## Notes
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- Google Gemini API key (free at https://aistudio.google.com/apikey)
 
-- If the Gemini API key is missing, the code will log the error and cannot call the model.
-- The `agent` path is designed to run if the planner can access Gemini.
-- The backend is now self-contained in `backend/` and the `app/` code needed for this service is inside `backend/app/`.
-=======
-# ERP RAG System v0.1
+### 3-Step Setup
 
-This repository contains an ERP AI Assistant project with a backend service, frontend interface, and documentation.
+**Step 1: Get API Key**
+```bash
+# Go to https://aistudio.google.com/apikey
+# Click "Create API key" and copy it
+```
 
-## What this project does
+**Step 2: Configure Backend**
+```bash
+cd backend
 
-- Helps users ask questions about ERP concepts and workflows.
-- Uses retrieval-augmented generation (RAG) to find ERP content and answer questions accurately.
-- Includes an AI Agent that can decide whether to search for context or answer directly.
-- Provides a frontend chat interface for user interaction.
+# Create virtual environment
+python -m venv .venv
+.\.venv\Scripts\activate  # Windows
+# OR
+source .venv/bin/activate  # macOS/Linux
 
-## Main folders
+# Install dependencies
+pip install -r requirements.txt
 
-- `backend/` - The complete backend service with FastAPI, retrieval logic, and agent code.
-- `frontend/` - Angular-based chat application.
-- `data/` - ERP content chunks used for retrieval.
-- `docs/` - Project documentation and a PDF generation utility.
+# Create .env file with your API key
+echo GEMINI_API_KEY=your_key_here > .env
+```
 
-## Quick start
+**Step 3: Run Servers**
+```bash
+# Terminal 1 - Backend
+cd backend
+.\.venv\Scripts\activate
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-**For detailed setup instructions and troubleshooting, see [SETUP.md](SETUP.md)**
+# Terminal 2 - Frontend
+cd frontend
+npm install
+npm start
+```
 
-### Quick Setup (3 steps)
+**Access the app**: http://localhost:4200
 
-1. **Get Gemini API Key**:
-   - Go to https://aistudio.google.com/apikey
-   - Click "Create API key"
-   - Copy your key
+---
 
-2. **Configure Backend**:
-   - Navigate to `backend/`
-   - Create a `.env` file with:
-     ```
-     GEMINI_API_KEY=your_key_here
-     ```
+## 📚 Documentation Guide
 
-3. **Run Backend**:
-   ```bash
-   cd backend
-   python -m venv venv
-   # Windows:
-   .\venv\Scripts\activate
-   # macOS/Linux:
-   source venv/bin/activate
-   
-   pip install -r requirements.txt
-   uvicorn app.main:app --reload
-   ```
+| Document | For Whom | Read If |
+|----------|----------|---------|
+| [SETUP.md](SETUP.md) | Developers | You want to run locally |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | DevOps/Deployment | You want to deploy to production |
+| [docs/ERP_AI_Assistant_Documentation.md](docs/ERP_AI_Assistant_Documentation.md) | Everyone | You're new to the project |
+| [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) | **Developers - START HERE** | You want to understand how code works |
+| [frontend/README.md](frontend/README.md) | Frontend Developers | You're working on the Angular UI |
 
-The backend will run at `http://127.0.0.1:8000`
+---
 
-**See [SETUP.md](SETUP.md) for detailed instructions, testing, and troubleshooting.**
+## 🏗️ How It Works
 
-## Backend endpoints
+### Simple Overview
+```
+User asks question in chat
+        ↓
+Frontend sends to Backend
+        ↓
+Agent decides: Search documents? Or answer from knowledge?
+        ↓
+RAG Engine retrieves relevant ERP documents
+        ↓
+Gemini AI generates answer using those documents
+        ↓
+Response sent back with sources
+        ↓
+User sees answer + which documents it came from
+```
 
-- `POST /ask` - Use the RAG engine for ERP-based answers.
-- `POST /agent-ask` - Use the AI Agent layer that chooses actions and may call tools.
+### Architecture Diagram
+```
+┌─────────────────────────┐
+│   Frontend (Angular)    │
+│   localhost:4200        │
+└────────────┬────────────┘
+             │ HTTP
+             ↓
+┌─────────────────────────┐
+│   Backend (FastAPI)     │
+│   localhost:8000        │
+│  ├─ Agent               │
+│  ├─ RAG Engine          │
+│  └─ Document Search     │
+└────────────┬────────────┘
+             │ API Calls
+             ↓
+┌─────────────────────────┐
+│  Google Gemini API      │
+│  (AI/LLM)               │
+└─────────────────────────┘
+```
 
-## Documentation
+---
 
-- **Getting Started**: See [SETUP.md](SETUP.md) for detailed local development setup
-- **Production Deployment**: See [DEPLOYMENT.md](DEPLOYMENT.md) for Render & Vercel deployment guides
-- **Project Overview**: Read [docs/ERP_AI_Assistant_Documentation.md](docs/ERP_AI_Assistant_Documentation.md) for beginner-friendly documentation
-- **Generate PDF**: Create a PDF version with:
-  ```bash
-  python docs/generate_pdf.py
-  ```
+## 🔌 API Endpoints
 
-## Notes for non-technical users
+### POST /ask
+**Direct RAG search** (no agent planning)
 
-- The backend is the brain of the system.
-- The frontend is the user interface.
-- The AI Agent is a smart helper inside the backend that decides how to answer.
-- If you are not familiar with AI, the documentation explains the main ideas in plain language.
+Request:
+```json
+{
+  "question": "How do I process a purchase order?",
+  "session_id": "user123"
+}
+```
 
-## How to use this project (non-technical)
+Response:
+```json
+{
+  "answer": "To process a purchase order...",
+  "sources": ["PO_Procedure.pdf", "Finance_Guide.md"]
+}
+```
 
-1. Start the backend server first from the `backend/` folder.
-2. Open the frontend app in a browser.
-3. Type your question in the chat box.
-4. The assistant will answer using ERP knowledge and show sources.
-5. If the assistant needs more detail, it may search ERP documents before answering.
+### POST /agent-ask
+**Smart agent routing** (decides which tool to use)
 
-This setup is built so that non-technical users can ask questions and receive clear written answers without needing to understand the code.
+Request:
+```json
+{
+  "question": "What is an ERP system?",
+  "session_id": "user123"
+}
+```
 
-## Frontend integration
+Response:
+```json
+{
+  "answer": "An ERP system is...",
+  "sources": ["ERP_Basics.pdf"],
+  "steps": [
+    {
+      "action": "rag_search",
+      "result": {...}
+    }
+  ]
+}
+```
 
-- The frontend uses `frontend/src/environments/environment.ts` to locate the backend.
-- It sends requests to `backendUrl + '/agent-ask'`.
-- The backend allows browser requests through CORS, so the frontend and backend can communicate.
+---
 
-## Git and cleanup
+## 🛠️ Key Technologies
 
-- The repository is now organized with only one backend service.
-- Local virtual environments are excluded in `.gitignore`:
-  - `venv/`
-  - `.venv/`
-  - `backend/venv/`
->>>>>>> 8e98eef9269c02fbb1bc48b6e6a16b2e19745b6b
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Backend | Python + FastAPI | REST API, business logic |
+| Frontend | Angular 17 + TypeScript | Web user interface |
+| AI/LLM | Google Gemini API | Answer generation |
+| Search | FAISS + BM25 | Vector & keyword search |
+| Deployment | Render + Vercel | Production hosting |
+
+---
+
+## 📖 Code Structure Explained
+
+**Want to understand the code?** Read [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) for:
+- Detailed explanation of every file
+- How components communicate
+- Request/response flow diagrams
+- Code examples with explanations
+
+---
+
+## 🚢 Production Deployment
+
+The system is deployed on:
+- **Backend**: Render.com (https://erp-rag-assistant-1.onrender.com/)
+- **Frontend**: Vercel (https://erp-rag-assistant.vercel.app/)
+
+For deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+---
+
+## 🤝 Contributing
+
+1. Clone the repository
+2. Create a feature branch
+3. Make changes
+4. Test locally (see SETUP.md)
+5. Push and create a Pull Request
+
+---
+
+## ❓ FAQ
+
+**Q: Do I need AI knowledge to understand this?**  
+A: No! See [docs/ERP_AI_Assistant_Documentation.md](docs/ERP_AI_Assistant_Documentation.md) for beginner-friendly explanations.
+
+**Q: How do I run this locally?**  
+A: Follow the Quick Start section above or see [SETUP.md](SETUP.md) for detailed instructions.
+
+**Q: How do I deploy to production?**  
+A: See [DEPLOYMENT.md](DEPLOYMENT.md) for step-by-step deployment guide.
+
+**Q: What if something breaks?**  
+A: Check the logs in `backend/logs/` and see troubleshooting in [SETUP.md](SETUP.md).
+
+---
+
+## 📝 License
+
+This project is proprietary. All rights reserved.
+
+---
+
+## 🎓 Learning Path
+
+**For Beginners:**
+1. Read this README
+2. Read [docs/ERP_AI_Assistant_Documentation.md](docs/ERP_AI_Assistant_Documentation.md)
+3. Run locally following SETUP.md
+4. Ask questions in the app and see how it works
+
+**For Developers:**
+1. Read [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md)
+2. Explore backend code: `backend/app/`
+3. Explore frontend code: `frontend/src/app/`
+4. Run locally and debug
+5. Make modifications
+
+**For DevOps:**
+1. Read [DEPLOYMENT.md](DEPLOYMENT.md)
+2. Set up Render backend
+3. Set up Vercel frontend
+4. Configure environment variables
+5. Monitor production logs
+
+---
+
+## 📞 Support
+
+- **Questions?** Check the documentation first
+- **Found a bug?** Create an issue on GitHub
+- **Want to contribute?** See contributing section
+
+---
+
+**Status**: ✅ Production Ready  
+**Last Updated**: May 2026  
+**Version**: 1.0

@@ -7,4 +7,6 @@ venv/
 backend/venv/
 node_modules/
 .angular/
+dist/
+frontend/dist/
 cls

@@ -1,22 +1,86 @@
-<div class="chat-box">
-  <div *ngFor="let msg of messages" [ngClass]="msg.role">
-    <div class="message-label">{{ msg.role | titlecase }}:</div>
-    <div class="message-content">{{ msg.text }}</div>
-    <div class="message-sources" *ngIf="msg.sources?.length">
-      Sources: {{ msg.sources.join(', ') }}
+<div class="chat-container">
+  <div class="chat-header">
+    <h2>ERP Assistant Chat</h2>
+    <p>Ask questions about your ERP system</p>
+  </div>
+
+  <div class="chat-messages" #chatMessages>
+    <div *ngFor="let msg of messages; trackBy: trackByMessage"
+         class="message-wrapper"
+         [ngClass]="msg.role">
+      <div class="message-avatar">
+        <span *ngIf="msg.role === 'user'" class="avatar-icon user-icon">👤</span>
+        <span *ngIf="msg.role === 'bot'" class="avatar-icon bot-icon">🤖</span>
+      </div>
+      <div class="message-content">
+        <div class="message-text">{{ msg.text }}</div>
+        <div class="message-sources" *ngIf="msg.sources?.length">
+          <strong>Sources:</strong> {{ msg.sources.join(', ') }}
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="isLoading" class="message-wrapper bot loading">
+      <div class="message-avatar">
+        <span class="avatar-icon bot-icon">🤖</span>
+      </div>
+      <div class="message-content">
+        <div class="typing-indicator">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="messages.length === 0 && !isLoading" class="welcome-message">
+      <div class="welcome-content">
+        <h3>Welcome to ERP Assistant! 🤖</h3>
+        <p>I'm here to help you with questions about your ERP system. Ask me anything!</p>
+        <div class="example-questions">
+          <p><strong>Example questions:</strong></p>
+          <ul>
+            <li>How do I process a purchase order?</li>
+            <li>What are the inventory management features?</li>
+            <li>How to generate financial reports?</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div *ngIf="isLoading" class="loading">Thinking...</div>
-</div>
+  <div class="chat-input-container">
+    <form (ngSubmit)="sendMessage()" class="chat-form">
+      <div class="input-wrapper">
+        <input
+          #messageInput
+          [(ngModel)]="userInput"
+          name="userInput"
+          type="text"
+          placeholder="Type your ERP question here..."
+          (keyup.enter)="sendMessage()"
+          [disabled]="isLoading"
+          autocomplete="off"
+          maxlength="500"
+        />
+        <button
+          type="submit"
+          [disabled]="!userInput.trim() || isLoading"
+          class="send-button"
+          aria-label="Send message">
+          <span *ngIf="!isLoading">Send</span>
+          <span *ngIf="isLoading" class="loading-spinner"></span>
+        </button>
+      </div>
+      <div class="input-footer">
+        <small class="character-count">{{ userInput.length }}/500</small>
+      </div>
+    </form>
+  </div>
 
-<div class="chat-input">
-  <input
-    [(ngModel)]="userInput"
-    placeholder="Ask ERP question..."
-    (keyup.enter)="sendMessage()"
-  />
-  <button (click)="sendMessage()" [disabled]="!userInput || isLoading">Send</button>
+  <div *ngIf="errorMessage" class="error-banner" role="alert">
+    <span class="error-icon">⚠️</span>
+    <span>{{ errorMessage }}</span>
+    <button (click)="clearError()" class="error-close" aria-label="Close error">×</button>
+  </div>
 </div>
-
-<div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>

@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewChecked, inject } from '@angular/core';
 import { ChatService, ChatResponse } from './chat.service';
 
 interface ChatMessage {
@@ -14,7 +14,7 @@ interface ChatMessage {
   styleUrls: ['./chat.component.css']
 })
 export class ChatComponent implements AfterViewChecked {
-  userInput: string = '';
+  userInput = '';
   messages: ChatMessage[] = [];
   sessionId = Math.random().toString(36).substring(7);
   isLoading = false;
@@ -23,7 +23,7 @@ export class ChatComponent implements AfterViewChecked {
   @ViewChild('chatMessages') private chatMessagesContainer!: ElementRef;
   @ViewChild('messageInput') private messageInput!: ElementRef;
 
-  constructor(private chatService: ChatService) {}
+  private chatService = inject(ChatService);
 
   ngAfterViewChecked() {
     this.scrollToBottom();

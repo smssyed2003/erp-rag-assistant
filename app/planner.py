@@ -1,277 +1,145 @@
 import json
 import logging
-
+import random
+from time import time
 from google import genai
 from google.genai import types
-
 from app.utils import require_env
 from app.logger import logger
 
-
 class Planner:
-
     def __init__(self):
         self._configure_model()
 
-    # =====================================================
-    # MODEL CONFIGURATION
-    # =====================================================
-
     def _configure_model(self):
-
         try:
+            api_key = require_env("GEMINI_API_KEY")
+            self.client = genai.Client(api_key=api_key)
+            
+            # Using Gemma 4 26B A4B IT for logical routing
+            self.model_name = "models/gemma-4-26b-a4b-it"
 
-            api_key = require_env(
-                "GEMINI_API_KEY"
+            self.generation_config = types.GenerateContentConfig(
+                temperature=0.0,  # Deterministic for JSON
+                max_output_tokens=2048, # Increased to allow for long synthesis
+                max_context_chars=12000 # Increased to handle detailed tool results
             )
-
-            self.client = genai.Client(
-                api_key=api_key
-            )
-
-            # Gemma model
-            self.model_name = "gemma-3-27b-it"
-
-            self.generation_config = (
-                types.GenerateContentConfig(
-                    temperature=0.2,
-                    max_output_tokens=512
-                )
-            )
-
-            logger.info(
-                "Planner Gemma initialized successfully"
-            )
-
+            logger.info("Planner Gemma 4 initialized successfully")
         except Exception as exc:
-
-            logger.exception(
-                "Planner Gemma initialization failed"
-            )
-
+            logger.exception("Planner Gemma initialization failed")
             self.client = None
 
-    # =====================================================
-    # GENERATION
-    # =====================================================
 
-    def _generate(self, prompt: str) -> str:
+    def _generate(self, prompt: str, is_json: bool = True) -> str:
 
         if not self.client:
-            raise RuntimeError(
-                "Gemma model is unavailable"
+            raise RuntimeError("Gemma model is unavailable")
+
+        config = self.generation_config
+
+        # safer config for synthesis
+        if not is_json:
+            config = types.GenerateContentConfig(
+                temperature=0.1,
+                max_output_tokens=2048
             )
 
-        try:
+        last_error = None
 
-            response = (
-                self.client.models.generate_content(
+        for attempt in range(5):  # retry increase
+
+            try:
+                response = self.client.models.generate_content(
                     model=self.model_name,
                     contents=prompt,
-                    config=self.generation_config
+                    config=config
                 )
-            )
 
-            if response.text:
-                return response.text.strip()
+                if response and response.text:
+                    return response.text.strip()
 
-            return ""
+                raise RuntimeError("Empty response from model")
 
-        except Exception as exc:
+            except Exception as exc:
+                last_error = exc
 
-            logger.exception(
-                "Planner generation failed"
-            )
+                wait = (2 ** attempt) + random.uniform(0, 1)
 
-            raise RuntimeError(
-                f"Planner generation failed: {exc}"
-            )
+                logger.warning(
+                    f"Gemini attempt {attempt+1}/5 failed. Retrying in {wait:.2f}s: {exc}"
+                )
 
-    # =====================================================
-    # JSON EXTRACTION
-    # =====================================================
+                time.sleep(wait)
+
+        raise RuntimeError(f"Planner generation failed after retries: {last_error}")
 
     def _extract_json(self, raw_text: str) -> dict:
-
         try:
-
-            start = raw_text.index("{")
-
-            end = raw_text.rindex("}") + 1
-
-            content = raw_text[start:end]
-
-            return json.loads(content)
-
+            # Fix: Ensure the string literals are properly closed
+            clean_text = raw_text.replace("```json", "").replace("```", "").strip()
+            return json.loads(clean_text)
         except Exception as exc:
+            logger.error(f"JSON Parse Error. Raw: {raw_text}")
+            raise ValueError(f"Invalid JSON from planner: {exc}")
 
-            logger.exception(
-                "Failed to parse planner JSON output"
-            )
-
-            raise ValueError(
-                f"Planner output is not valid JSON: {exc}"
-            )
-
-    # =====================================================
-    # PLANNING
-    # =====================================================
-
-    def plan(
-        self,
-        question: str,
-        previous_steps: list[dict]
-    ) -> dict:
-
-        prompt = self._build_plan_prompt(
-            question,
-            previous_steps
-        )
-
-        output = self._generate(prompt)
-
-        logger.info(
-            f"Planner decision output: {output}"
-        )
-
+    def plan(self, question: str, previous_steps: list[dict]) -> dict:
+        prompt = self._build_plan_prompt(question, previous_steps)
+        output = self._generate(prompt, is_json=True)
         return self._extract_json(output)
 
-    # =====================================================
-    # SYNTHESIS
-    # =====================================================
-
-    def synthesize(
-        self,
-        question: str,
-        tool_results: list[dict]
-    ) -> str:
-
-        prompt = self._build_synthesis_prompt(
-            question,
-            tool_results
-        )
-
-        output = self._generate(prompt)
-
-        logger.info(
-            "Planner synthesis output generated"
-        )
-
-        return output.strip()
+    def synthesize(self, question: str, tool_results: list[dict]) -> str:
+        prompt = self._build_synthesis_prompt(question, tool_results)
+        # Use is_json=False to allow for standard text response
+        return self._generate(prompt, is_json=False)
 
     # =====================================================
-    # PLAN PROMPT
+    # REFINED PROMPTS (NO WORD LIMITS)
     # =====================================================
 
-    def _build_plan_prompt(
-        self,
-        question: str,
-        previous_steps: list[dict]
-    ) -> str:
-
-        steps_summary = (
-            "\n".join([
-                f"{idx + 1}. "
-                f"{step.get('action', '')}: "
-                f"{step.get('description', '')}"
-                for idx, step in enumerate(
-                    previous_steps
-                )
-            ])
-            if previous_steps
-            else "None"
-        )
-
-        question_json = json.dumps(question)
+    def _build_plan_prompt(self, question: str, previous_steps: list[dict]) -> str:
+        history = "None"
+        if previous_steps:
+            history = "\n".join([f"- Step {i}: {s.get('action')}" for i, s in enumerate(previous_steps)])
 
         return f"""
-You are an AI ERP planning agent.
+TASK: Route the user query.
+USER QUERY: "{question}"
+HISTORY: {history}
 
-Select the next action.
+CLASSIFICATION CRITERIA:
+- rag_search: For queries regarding ERP modules, business logic, procurement, finance, SAP, or internal company procedures.
+- direct_answer: For coding help, general AI questions, greetings, or general external knowledge.
 
-Allowed actions:
-- rag_search
-- direct_answer
-
-Return ONLY valid JSON.
-
-Required format:
-
+JSON OUTPUT ONLY:
 {{
-  "action": "...",
-  "input": {{
-    "question": {question_json}
-  }}
+  "action": "rag_search" | "direct_answer",
+  "reasoning": "Brief logic for choice",
+  "input": {{ "question": "{question}" }}
 }}
-
-Rules:
-- ERP/business/process/SAP/finance/procurement questions
-  → rag_search
-
-- General knowledge/programming/AI questions
-  → direct_answer
-
-Question:
-{question}
-
-Previous steps:
-{steps_summary}
-
-Output:
 """
 
-    # =====================================================
-    # SYNTHESIS PROMPT
-    # =====================================================
-
-    def _build_synthesis_prompt(
-        self,
-        question: str,
-        tool_results: list[dict]
-    ) -> str:
-
-        results_section = ""
-
-        if tool_results:
-
-            for idx, result in enumerate(
-                tool_results,
-                start=1
-            ):
-
-                results_section += (
-                    f"Tool result {idx}:\n"
-                )
-
-                for key, value in result.items():
-
-                    results_section += (
-                        f"{key}: {value}\n"
-                    )
-
-                results_section += "\n"
-
-        else:
-
-            results_section = (
-                "No tool results were collected.\n\n"
-            )
+    def _build_synthesis_prompt(self, question: str, tool_results: list[dict]) -> str:
+        data_context = ""
+        for i, res in enumerate(tool_results):
+            # Capture as much detail as possible from the tool results
+            data_context += f"--- DATA SOURCE {i+1} ---\n{res}\n\n"
 
         return f"""
-You are an ERP assistant.
+ROLE: Senior ERP Process Consultant
+TASK: Provide a comprehensive and professional answer based strictly on the collected data.
 
-Use the collected tool results
-to answer the user's question.
-
-Question:
+USER QUESTION: 
 {question}
 
-Collected Data:
-{results_section}
+COLLECTED ERP DATA:
+{data_context}
 
-Instructions:
-- Keep answer under 120 words
-- Use simple language
-- Mention sources briefly if available
-- Return only final answer text
+INSTRUCTIONS:
+1. Provide a thorough explanation. If a process has multiple steps, list them clearly.
+2. Maintain a professional, business-neutral tone.
+3. If the collected data contains detailed technical steps or long policy descriptions, include them fully to ensure the user has all necessary information.
+4. Do not use phrases like "Based on the search results" or "The tool returned". Speak as the expert.
+5. If the data provided is insufficient to answer the question completely, explain what is missing.
+
+FINAL RESPONSE:
 """

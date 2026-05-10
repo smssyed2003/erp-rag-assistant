@@ -23,14 +23,14 @@ class Agent:
             action = decision.get("action", "finish")
             tool_input = decision.get("input", {})
 
-            # Safety layer: ensure input is valid
             if action in ["rag_search", "direct_answer"]:
                 if not tool_input or "question" not in tool_input:
-                    logger.warning(f"Planner returned invalid input for {action}: {tool_input}. Auto-filling with question.")
+                    logger.warning(
+                        f"Planner returned invalid input for {action}: {tool_input}. Auto-filling with question."
+                    )
                     tool_input = {"question": question}
 
             if action == "direct_answer":
-                # Run the tool and break
                 tool = self.tool_registry.get(action)
                 if tool:
                     try:

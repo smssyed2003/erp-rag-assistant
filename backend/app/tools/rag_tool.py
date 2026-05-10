@@ -1,22 +1,29 @@
 from typing import Any, Dict
 from app.tools.base_tool import BaseTool
+from app.rag_engine import RAGEngine
 
 
 class RAGTool(BaseTool):
     name = "rag_search"
-    description = "Retrieve ERP context and sources from the existing RAG engine."
+    description = "Run retrieval augmented generation queries via the RAG engine."
 
-    def __init__(self, rag_engine):
+    def __init__(self, rag_engine: RAGEngine):
+        super().__init__(name=self.name, description=self.description)
         self.rag_engine = rag_engine
 
     def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        question = input_data.get("question")
-        if not question:
-            raise ValueError("rag_search tool requires a question field")
+        question = input_data.get("question", "")
+        session_id = input_data.get("session_id", "agent-session")
 
-        context, sources = self.rag_engine.retriever.retrieve(question)
+        if not question:
+            return {
+                "answer": "",
+                "sources": [],
+                "error": "Question is required for RAG search."
+            }
+
+        result = self.rag_engine.query(question, session_id)
         return {
-            "context": context,
-            "sources": sources,
-            "question": question
+            "answer": result.get("answer", ""),
+            "sources": result.get("sources", []),
         }

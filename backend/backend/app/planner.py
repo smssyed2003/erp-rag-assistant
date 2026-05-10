@@ -1,16 +1,11 @@
 import json
 import logging
-import random
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from google import genai
 from google.genai import types
 from app.utils import require_env
 from app.logger import logger
 
 class Planner:
-    GENERATION_TIMEOUT_SECONDS = 18
-
     def __init__(self):
         self._configure_model()
 
@@ -24,66 +19,36 @@ class Planner:
 
             self.generation_config = types.GenerateContentConfig(
                 temperature=0.0,  # Deterministic for JSON
-                max_output_tokens=2048  # Increased to allow for long synthesis
+                max_output_tokens=2048, # Increased to allow for long synthesis
+                response_mime_type="application/json" 
             )
             logger.info("Planner Gemma 4 initialized successfully")
         except Exception as exc:
             logger.exception("Planner Gemma initialization failed")
             self.client = None
 
-
     def _generate(self, prompt: str, is_json: bool = True) -> str:
-
         if not self.client:
             raise RuntimeError("Gemma model is unavailable")
-
+        
+        # Use a temporary config for synthesis if we want free-form text instead of JSON
         config = self.generation_config
-
-        # safer config for synthesis
         if not is_json:
             config = types.GenerateContentConfig(
-                temperature=0.1,
+                temperature=0.1, # Slight flexibility for natural language
                 max_output_tokens=2048
             )
 
-        def call_model():
+        try:
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
                 config=config
             )
-
-            if response and getattr(response, "text", None):
-                return response.text.strip()
-
-            raise RuntimeError("Empty response from model")
-
-        last_error = None
-
-        for attempt in range(5):  # retry increase
-            try:
-                with ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(call_model)
-                    result = future.result(timeout=self.GENERATION_TIMEOUT_SECONDS)
-                    return result
-
-            except FutureTimeoutError:
-                last_error = RuntimeError(
-                    f"Planner generation timed out after {self.GENERATION_TIMEOUT_SECONDS} seconds"
-                )
-                logger.warning(
-                    f"Gemini attempt {attempt+1}/5 timed out after {self.GENERATION_TIMEOUT_SECONDS}s"
-                )
-
-            except Exception as exc:
-                last_error = exc
-                wait = (2 ** attempt) + random.uniform(0, 1)
-                logger.warning(
-                    f"Gemini attempt {attempt+1}/5 failed. Retrying in {wait:.2f}s: {exc}"
-                )
-                time.sleep(wait)
-
-        raise RuntimeError(f"Planner generation failed after retries: {last_error}")
+            return response.text.strip() if response.text else ""
+        except Exception as exc:
+            logger.exception("Planner generation failed")
+            raise RuntimeError(f"Planner generation failed: {exc}")
 
     def _extract_json(self, raw_text: str) -> dict:
         try:

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def backend_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def load_json(path: Path):
@@ -21,6 +21,7 @@ def require_env(key: str) -> str:
         raise EnvironmentError(
             f"Environment variable '{key}' is required but was not found."
         )
+
     return value
 
 

@@ -1,1 +1,1 @@
-# Package initializer for agent tools
+"""Tool package for ERP RAG Assistant."""

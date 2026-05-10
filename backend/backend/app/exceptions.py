@@ -83,7 +83,7 @@ class RetrievalError(ERPRAGException):
     def __init__(self, message: str, query: Optional[str] = None):
         details = {}
         if query:
-            details["query"] = query[:500]
+            details["query"] = query[:500]  # Truncate for security
         
         super().__init__(
             message=message,
@@ -193,12 +193,14 @@ def create_error_response(exc: Exception) -> Dict[str, Any]:
     if isinstance(exc, ERPRAGException):
         return exc.to_dict()
     
+    # Handle unexpected exceptions
     logger.exception(f"Unexpected exception: {exc}")
+    
     return {
         "error": {
-            "code": "UNEXPECTED_ERROR",
-            "message": str(exc),
+            "code": "INTERNAL_ERROR",
+            "message": "An internal error occurred. Please try again later.",
             "status": 500,
-            "details": {}
+            "details": {"type": type(exc).__name__}
         }
     }

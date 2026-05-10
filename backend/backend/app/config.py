@@ -93,6 +93,7 @@ try:
     settings = Settings()
 except Exception as e:
     print(f"Error loading configuration: {e}")
+    # Create minimal settings for error handling
     settings = None
 
 
@@ -112,9 +113,11 @@ def validate_settings() -> Optional[str]:
     try:
         s = get_settings()
         
+        # Check critical environment variables
         if not s.gemini_api_key:
             return "GEMINI_API_KEY is not set"
         
+        # Validate numeric ranges
         if s.retrieval_top_k < 1 or s.retrieval_top_k > 50:
             return "RETRIEVAL_TOP_K must be between 1 and 50"
         
@@ -125,5 +128,6 @@ def validate_settings() -> Optional[str]:
             return "SESSION_TTL_MINUTES must be between 5 and 1440"
         
         return None
+    
     except Exception as e:
         return f"Configuration validation error: {str(e)}"

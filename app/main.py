@@ -15,7 +15,7 @@ load_dotenv(dotenv_path=env_path)
 
 app = FastAPI(
     title="ERP RAG Assistant API",
-    description="Retrieval-augmented generation backend for ERP knowledge queries.",
+    version="1.0.0"
 )
 
 app.add_middleware(

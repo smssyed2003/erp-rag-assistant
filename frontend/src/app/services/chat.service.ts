@@ -14,7 +14,7 @@ export interface ChatResponse {
 export class ChatService {
   private http = inject(HttpClient);
 
-  private API_URL = `${environment.backendUrl}/agent-ask`;
+  private API_URL = `${environment.backendUrl}/api/agent-ask`;
 
   askQuestion(question: string, sessionId: string): Observable<ChatResponse> {
     return this.http.post<ChatResponse>(this.API_URL, {

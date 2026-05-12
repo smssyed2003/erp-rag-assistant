@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { AppComponent } from './app.component';
 import { ChatComponent } from './services/chat.component';
+import { ChatService } from './services/chat.service';
 
 @NgModule({
   declarations: [AppComponent, ChatComponent],
   imports: [BrowserModule, FormsModule, HttpClientModule],
-  providers: [],
+  providers: [ChatService],
   bootstrap: [AppComponent]
 })
 export class AppModule {}

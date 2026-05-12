@@ -5,14 +5,12 @@
   </div>
 
   <div class="chat-messages" #chatMessages>
-    @for (msg of messages; track trackByMessage($index, msg)) {
+    @for (msg of messages; track msg.id) {
       <div class="message-wrapper" [ngClass]="msg.role">
         <div class="message-avatar">
-          @if (msg.role === 'user') {
-            <span class="avatar-icon user-icon">👤</span>
-          } @else {
-            <span class="avatar-icon bot-icon">🤖</span>
-          }
+          <span class="avatar-icon" [class.user-icon]="msg.role === 'user'" [class.bot-icon]="msg.role === 'bot'">
+            {{ msg.role === 'user' ? '👤' : '🤖' }}
+          </span>
         </div>
         <div class="message-content">
           <div class="message-text">{{ msg.text }}</div>
@@ -79,7 +77,8 @@
           aria-label="Send message">
           @if (!isLoading) {
             <span>Send</span>
-          } @else {
+          }
+          @if (isLoading) {
             <span class="loading-spinner"></span>
           }
         </button>

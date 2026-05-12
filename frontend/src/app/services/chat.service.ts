@@ -1,20 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../environments/environment';
 
 export interface ChatResponse {
   answer: string;
-  sources: any[];
+  sources: string[];
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class ChatService {
+  private API_URL = `${environment.backendUrl}/ask`;
   private http = inject(HttpClient);
-
-  private API_URL = `${environment.backendUrl}/api/agent-ask`;
 
   askQuestion(question: string, sessionId: string): Observable<ChatResponse> {
     return this.http.post<ChatResponse>(this.API_URL, {

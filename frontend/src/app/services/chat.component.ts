@@ -20,17 +20,13 @@ export class ChatComponent implements AfterViewChecked {
   isLoading = false;
   errorMessage = '';
 
-  @ViewChild('chatMessages') private chatMessagesContainer!: ElementRef;
-  @ViewChild('messageInput') private messageInput!: ElementRef;
+  @ViewChild('chatMessages', { static: false }) private chatMessagesContainer?: ElementRef;
+  @ViewChild('messageInput', { static: false }) private messageInput?: ElementRef;
 
   private chatService = inject(ChatService);
 
   ngAfterViewChecked() {
     this.scrollToBottom();
-  }
-
-  trackByMessage(index: number, message: ChatMessage): string {
-    return message.id;
   }
 
   sendMessage() {
@@ -53,7 +49,7 @@ export class ChatComponent implements AfterViewChecked {
 
     // Focus back to input after sending
     setTimeout(() => {
-      if (this.messageInput) {
+      if (this.messageInput?.nativeElement) {
         this.messageInput.nativeElement.focus();
       }
     }, 0);
@@ -84,7 +80,7 @@ export class ChatComponent implements AfterViewChecked {
 
   private scrollToBottom(): void {
     try {
-      if (this.chatMessagesContainer) {
+      if (this.chatMessagesContainer?.nativeElement) {
         this.chatMessagesContainer.nativeElement.scrollTop =
           this.chatMessagesContainer.nativeElement.scrollHeight;
       }
